@@ -13,6 +13,21 @@ where
     Option::<Value>::deserialize(deserializer)?.map(ttd_from_value::<D>).transpose()
 }
 
+/// Custom serialization function for terminal total difficulty that trims the 0x prefix
+pub fn serialize_ttd_opt<S>(ttd: &Option<U256>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match ttd {
+        Some(value) => {
+            // Convert to hex string without 0x prefix and trim leading zeros
+            let hex = format!("{value:x}");
+            serializer.serialize_str(&hex)
+        }
+        None => serializer.serialize_none(),
+    }
+}
+
 /// Converts the given [serde_json::Value] into a `U256` value for TTD deserialization.
 fn ttd_from_value<'de, D>(val: Value) -> Result<U256, D::Error>
 where
@@ -90,6 +105,20 @@ mod tests {
         let serialized = serde_json::to_string(&data).unwrap();
 
         assert_eq!(serialized, r#""0x10""#);
+    }
+
+    #[test]
+    fn serialize_ttd_without_0x_prefix() {
+        #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+        struct Ttd(#[serde(serialize_with = "super::serialize_ttd_opt")] Option<U256>);
+
+        let values = vec![Ttd(Some(U256::from(0x123456))), Ttd(Some(U256::MAX)), Ttd(None)];
+
+        let serialized = serde_json::to_string(&values).unwrap();
+        assert_eq!(
+            serialized,
+            r#"["123456","ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",null]"#
+        );
     }
 
     #[test]

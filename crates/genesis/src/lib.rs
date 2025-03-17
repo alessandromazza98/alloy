@@ -14,7 +14,11 @@ extern crate alloc;
 use alloc::{collections::BTreeMap, string::String};
 use alloy_eips::eip7840::BlobParams;
 use alloy_primitives::{keccak256, Address, Bytes, B256, U256};
-use alloy_serde::{storage::deserialize_storage_map, ttd::deserialize_json_ttd_opt, OtherFields};
+use alloy_serde::{
+    storage::deserialize_storage_map,
+    ttd::{deserialize_json_ttd_opt, serialize_ttd_opt},
+    OtherFields,
+};
 use alloy_trie::{TrieAccount, EMPTY_ROOT_HASH, KECCAK_EMPTY};
 use core::str::FromStr;
 use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
@@ -461,7 +465,8 @@ pub struct ChainConfig {
     /// Total difficulty reached that triggers the merge consensus upgrade.
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_json_ttd_opt"
+        deserialize_with = "deserialize_json_ttd_opt",
+        serialize_with = "serialize_ttd_opt"
     )]
     pub terminal_total_difficulty: Option<U256>,
 
